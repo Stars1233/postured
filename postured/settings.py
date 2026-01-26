@@ -22,7 +22,8 @@ class Settings:
 
     @property
     def sensitivity(self) -> float:
-        return float(self._settings.value('sensitivity', self.DEFAULTS['sensitivity']))
+        value = float(self._settings.value('sensitivity', self.DEFAULTS['sensitivity']))
+        return max(0.1, min(1.0, value))
 
     @sensitivity.setter
     def sensitivity(self, value: float):
@@ -30,7 +31,8 @@ class Settings:
 
     @property
     def dead_zone(self) -> float:
-        return float(self._settings.value('dead_zone', self.DEFAULTS['dead_zone']))
+        value = float(self._settings.value('dead_zone', self.DEFAULTS['dead_zone']))
+        return max(0.01, min(0.2, value))
 
     @dead_zone.setter
     def dead_zone(self, value: float):
@@ -38,7 +40,8 @@ class Settings:
 
     @property
     def camera_index(self) -> int:
-        return int(self._settings.value('camera_index', self.DEFAULTS['camera_index']))
+        value = int(self._settings.value('camera_index', self.DEFAULTS['camera_index']))
+        return max(0, value)
 
     @camera_index.setter
     def camera_index(self, value: int):
@@ -54,7 +57,8 @@ class Settings:
 
     @property
     def good_posture_y(self) -> float:
-        return float(self._settings.value('good_posture_y', self.DEFAULTS['good_posture_y']))
+        value = float(self._settings.value('good_posture_y', self.DEFAULTS['good_posture_y']))
+        return max(0.0, min(1.0, value))
 
     @good_posture_y.setter
     def good_posture_y(self, value: float):
@@ -62,7 +66,8 @@ class Settings:
 
     @property
     def bad_posture_y(self) -> float:
-        return float(self._settings.value('bad_posture_y', self.DEFAULTS['bad_posture_y']))
+        value = float(self._settings.value('bad_posture_y', self.DEFAULTS['bad_posture_y']))
+        return max(0.0, min(1.0, value))
 
     @bad_posture_y.setter
     def bad_posture_y(self, value: float):
