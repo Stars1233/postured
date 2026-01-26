@@ -15,19 +15,15 @@ class TrayIcon(QObject):
     quit_requested = pyqtSignal()
 
     SENSITIVITY_OPTIONS = [
-        ("Very low", 0.4),
         ("Low", 0.6),
         ("Medium", 0.85),
-        ("High", 0.95),
-        ("Very high", 1.0),
+        ("High", 1.0),
     ]
 
     DEAD_ZONE_OPTIONS = [
-        ("Very small", 0.01),
         ("Small", 0.02),
         ("Medium", 0.03),
         ("Large", 0.05),
-        ("Very large", 0.08),
     ]
 
     def __init__(self, parent=None):
