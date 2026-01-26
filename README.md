@@ -6,8 +6,14 @@ Uses your webcam and MediaPipe pose detection to monitor your posture. When slou
 
 ## Install
 
+```bash
+pip install postured
 ```
-uv pip install .
+
+Or with uv:
+
+```bash
+uv pip install postured
 ```
 
 ## Usage
