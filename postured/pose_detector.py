@@ -150,7 +150,8 @@ class PoseDetector(QObject):
             self.worker.stop()
         if self.thread:
             self.thread.quit()
-            self.thread.wait()
+            if not self.thread.wait(5000):
+                self.thread.terminate()
             self.thread = None
             self.worker = None
 
