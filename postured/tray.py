@@ -131,6 +131,11 @@ class TrayIcon(QObject):
 
     def update_cameras(self, cameras: list[tuple[int, str]], current: int):
         self.camera_menu.clear()
+        if not cameras:
+            action = QAction("No cameras found", self.camera_menu)
+            action.setEnabled(False)
+            self.camera_menu.addAction(action)
+            return
         single_camera = len(cameras) == 1
         for index, name in cameras:
             action = QAction(name, self.camera_menu)
