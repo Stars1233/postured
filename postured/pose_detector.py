@@ -26,7 +26,7 @@ class PoseWorker(QObject):
     SMOOTHING_WINDOW = 5
     FRAME_INTERVAL_S = 0.1  # 10 FPS
     MAX_CONSECUTIVE_FAILURES = 30  # ~3 seconds before reporting camera lost
-    RECOVERY_CHECK_INTERVAL_S = 5.0
+    RECOVERY_CHECK_INTERVAL_S = 2.0
     MIN_FRAME_VARIANCE = 20.0  # detect blank frames (e.g. hardware privacy switch)
 
     def __init__(self, model_path: Path, camera_index: int):
