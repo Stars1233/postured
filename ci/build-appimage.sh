@@ -24,25 +24,25 @@ cd "${TOOLS_DIR}"
 
 # linuxdeploy (by TheAssassin)
 if [ ! -f linuxdeploy-x86_64.AppImage ]; then
-    wget -q --show-progress "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+    wget -nv "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
     chmod +x linuxdeploy-x86_64.AppImage
 fi
 
 # linuxdeploy-plugin-conda (download from repo, no releases available)
 if [ ! -f linuxdeploy-plugin-conda.sh ]; then
-    wget -q --show-progress "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-conda/master/linuxdeploy-plugin-conda.sh"
+    wget -nv "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-conda/master/linuxdeploy-plugin-conda.sh"
     chmod +x linuxdeploy-plugin-conda.sh
 fi
 
 # linuxdeploy-plugin-appimage (for final AppImage creation)
 if [ ! -f linuxdeploy-plugin-appimage-x86_64.AppImage ]; then
-    wget -q --show-progress "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage"
+    wget -nv "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage"
     chmod +x linuxdeploy-plugin-appimage-x86_64.AppImage
 fi
 
 # appimagelint (by TheAssassin) - for validation
 if [ ! -f appimagelint-x86_64.AppImage ]; then
-    wget -q --show-progress "https://github.com/TheAssassin/appimagelint/releases/download/continuous/appimagelint-x86_64.AppImage" || echo "Warning: appimagelint not available, skipping validation"
+    wget -nv "https://github.com/TheAssassin/appimagelint/releases/download/continuous/appimagelint-x86_64.AppImage" || echo "Warning: appimagelint not available, skipping validation"
 fi
 
 cd "${SCRIPT_DIR}"
@@ -53,8 +53,8 @@ export CONDA_PLUGINS_AUTO_ACCEPT_TOS=yes
 export CONDA_CHANNELS="conda-forge"
 # Install Python and PyQt6 via conda
 export CONDA_PACKAGES="python=3.11;pyqt>=6.6"
-# Install pip-only packages (mediapipe not on conda)
-export PIP_REQUIREMENTS="mediapipe>=0.10.0 opencv-python>=4.8.0"
+# Install pip-only packages (mediapipe not on conda) and the app itself
+export PIP_REQUIREMENTS="mediapipe>=0.10.0 opencv-python>=4.8.0 ."
 export PIP_WORKDIR="${PROJECT_DIR}"
 # Cache downloads
 export CONDA_DOWNLOAD_DIR="${TOOLS_DIR}/conda-cache"
@@ -79,9 +79,12 @@ fi
 cp "${PROJECT_DIR}/resources/postured.desktop" "${APPDIR}/"
 cp "${PROJECT_DIR}/resources/icons/postured.svg" "${APPDIR}/postured.svg"
 
-# Create the AppRun script BEFORE running linuxdeploy (required for --custom-apprun)
+# Create the AppRun script OUTSIDE the AppDir (linuxdeploy will copy it in)
+# Note: --custom-apprun source must not be inside the AppDir, or linuxdeploy
+# will delete the file before trying to copy it, causing a failure.
 echo "=== Creating AppRun script ==="
-cat > "${APPDIR}/AppRun" << 'APPRUN_EOF'
+APPRUN_FILE="${BUILD_DIR}/AppRun"
+cat > "${APPRUN_FILE}" << 'APPRUN_EOF'
 #!/bin/bash
 # AppRun for Postured
 SELF=$(readlink -f "$0")
@@ -108,7 +111,7 @@ export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/s
 # Run the application
 exec "${HERE}/usr/conda/bin/python" -m postured "$@"
 APPRUN_EOF
-chmod +x "${APPDIR}/AppRun"
+chmod +x "${APPRUN_FILE}"
 
 # Run linuxdeploy with conda plugin to set up Python environment
 echo "=== Running linuxdeploy with conda plugin ==="
@@ -117,17 +120,9 @@ cd "${BUILD_DIR}"
 "${TOOLS_DIR}/linuxdeploy-x86_64.AppImage" \
     --appdir "${APPDIR}" \
     --plugin conda \
-    --custom-apprun "${APPDIR}/AppRun" \
+    --custom-apprun "${APPRUN_FILE}" \
     --desktop-file "${PROJECT_DIR}/resources/postured.desktop" \
     --icon-file "${PROJECT_DIR}/resources/icons/postured.svg"
-
-# Install the postured package itself
-echo "=== Installing postured package ==="
-PYTHON="${APPDIR}/usr/conda/bin/python"
-PIP="${APPDIR}/usr/conda/bin/pip"
-
-# Install the postured package (dependencies already installed via PIP_REQUIREMENTS)
-"${PIP}" install --no-deps "${PROJECT_DIR}"
 
 # Create the final AppImage
 echo "=== Creating AppImage ==="
