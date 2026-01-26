@@ -22,18 +22,6 @@ class OverlayWindow(QWidget):
         geometry = screen.geometry()
         self.setGeometry(geometry)
 
-        # Try to enable KWin blur
-        self._setup_kwin_blur()
-
-    def _setup_kwin_blur(self):
-        """Enable KDE Plasma blur if available."""
-        try:
-            # Set KWin blur hint - this requests blur behind the window
-            # The property name is _KDE_NET_WM_BLUR_BEHIND_REGION
-            pass  # Implemented via X11/Wayland specific code
-        except Exception:
-            pass  # Fallback to opacity-only
-
     def set_opacity(self, level: float):
         """Set overlay darkness (0.0 = invisible, 1.0 = fully dark)."""
         self.opacity_level = max(0.0, min(1.0, level))
