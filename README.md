@@ -35,6 +35,10 @@ busctl --user call org.postured.Postured /org/postured/Postured org.postured.Pos
 - Linux
 - Webcam
 
+## Credits
+
+Inspired by [posturr](https://github.com/tldev/posturr) - check it out if you're on macOS.
+
 ## License
 
 MIT
