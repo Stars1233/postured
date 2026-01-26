@@ -22,6 +22,8 @@ uv pip install postured
 postured
 ```
 
+Requires [notifications support](https://extensions.gnome.org/extension/615/appindicator-support/) on Gnome Shell.
+
 ## Settings
 
 Right-click the tray icon to access:
