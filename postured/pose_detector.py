@@ -50,7 +50,11 @@ class PoseWorker(QObject):
             min_pose_presence_confidence=0.5,
             min_tracking_confidence=0.5,
         )
-        landmarker = PoseLandmarker.create_from_options(options)
+        try:
+            landmarker = PoseLandmarker.create_from_options(options)
+        except Exception as e:
+            self.error.emit(f"Failed to load pose model: {e}")
+            return
 
         capture = cv2.VideoCapture(self.camera_index)
         if not capture.isOpened():
