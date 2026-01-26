@@ -25,7 +25,10 @@ Right-click the tray icon to access:
 
 ## D-Bus Interface
 
-Control postured via D-Bus:
+Control postured via D-Bus for pause/resume and status queries.
+
+<details>
+<summary>Show commands</summary>
 
 ```bash
 # Pause/Resume
@@ -35,6 +38,8 @@ busctl --user call org.postured.Postured /org/postured/Postured org.postured.Pos
 # Get status
 busctl --user call org.postured.Postured /org/postured/Postured org.postured.Postured1 GetStatus
 ```
+
+</details>
 
 ## Requirements
 
