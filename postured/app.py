@@ -1,0 +1,226 @@
+from PyQt6.QtCore import QObject, pyqtSlot
+from PyQt6.QtWidgets import QApplication
+
+from .pose_detector import PoseDetector
+from .overlay import Overlay
+from .calibration import CalibrationWindow
+from .tray import TrayIcon
+from .settings import Settings
+
+
+class Application(QObject):
+    """Main application controller."""
+
+    FRAME_THRESHOLD = 8
+    AWAY_THRESHOLD = 15
+
+    def __init__(self):
+        super().__init__()
+
+        self.settings = Settings()
+
+        # Components
+        self.pose_detector = PoseDetector(self)
+        self.overlay = Overlay(self)
+        self.tray = TrayIcon(self)
+        self.calibration: CalibrationWindow | None = None
+
+        # State
+        self.is_enabled = True
+        self.is_calibrating = False
+        self.is_slouching = False
+        self.consecutive_bad_frames = 0
+        self.consecutive_good_frames = 0
+        self.consecutive_no_detection = 0
+
+        self._connect_signals()
+        self._start()
+
+    def _connect_signals(self):
+        # Pose detector
+        self.pose_detector.pose_detected.connect(self._on_pose_detected)
+        self.pose_detector.no_detection.connect(self._on_no_detection)
+        self.pose_detector.camera_error.connect(self._on_camera_error)
+
+        # Tray
+        self.tray.enable_toggled.connect(self._on_enable_toggled)
+        self.tray.recalibrate_requested.connect(self.start_calibration)
+        self.tray.sensitivity_changed.connect(self._on_sensitivity_changed)
+        self.tray.dead_zone_changed.connect(self._on_dead_zone_changed)
+        self.tray.camera_changed.connect(self._on_camera_changed)
+        self.tray.dim_when_away_toggled.connect(self._on_dim_away_toggled)
+        self.tray.quit_requested.connect(self._quit)
+
+    def _start(self):
+        # Update camera list
+        cameras = PoseDetector.available_cameras()
+        self.tray.update_cameras(cameras, self.settings.camera_index)
+
+        # Start pose detection
+        self.pose_detector.start(self.settings.camera_index)
+
+        # Start calibration if not calibrated
+        if not self.settings.is_calibrated:
+            self.start_calibration()
+        else:
+            self.tray.set_status("Monitoring")
+
+    def start_calibration(self):
+        if self.is_calibrating:
+            return
+
+        self.is_calibrating = True
+        self.is_enabled = False
+        self.overlay.set_target_opacity(0)
+        self.tray.set_status("Calibrating...")
+
+        self.calibration = CalibrationWindow()
+        self.calibration.calibration_complete.connect(self._on_calibration_complete)
+        self.calibration.calibration_cancelled.connect(self._on_calibration_cancelled)
+
+        # Forward pose data to calibration window
+        self.pose_detector.pose_detected.connect(self.calibration.update_nose_y)
+
+        self.calibration.start()
+
+    @pyqtSlot(float, float, float)
+    def _on_calibration_complete(self, min_y: float, max_y: float, avg_y: float):
+        # In MediaPipe, higher Y = lower in frame = slouching
+        # So min_y = good posture (looking up), max_y = bad posture (looking down)
+        self.settings.good_posture_y = min_y
+        self.settings.bad_posture_y = max_y
+        self.settings.is_calibrated = True
+        self.settings.sync()
+
+        self._finish_calibration()
+        self.tray.set_status("Calibrated")
+
+    @pyqtSlot()
+    def _on_calibration_cancelled(self):
+        # Use defaults
+        self.settings.is_calibrated = True
+        self._finish_calibration()
+        self.tray.set_status("Using defaults")
+
+    def _finish_calibration(self):
+        self.is_calibrating = False
+        self.is_enabled = True
+        self.consecutive_bad_frames = 0
+        self.consecutive_good_frames = 0
+
+        if self.calibration:
+            self.pose_detector.pose_detected.disconnect(self.calibration.update_nose_y)
+            self.calibration = None
+
+    @pyqtSlot(float)
+    def _on_pose_detected(self, nose_y: float):
+        if self.is_calibrating or not self.is_enabled:
+            return
+
+        self.consecutive_no_detection = 0
+        self._evaluate_posture(nose_y)
+
+    @pyqtSlot()
+    def _on_no_detection(self):
+        if self.is_calibrating or not self.is_enabled:
+            return
+
+        self.consecutive_no_detection += 1
+        self.consecutive_bad_frames = 0
+        self.consecutive_good_frames = 0
+
+        if self.settings.dim_when_away and self.consecutive_no_detection >= self.AWAY_THRESHOLD:
+            self.overlay.set_target_opacity(1.0)
+            self.tray.set_status("Away")
+            self.tray.set_posture_state('away')
+
+    def _evaluate_posture(self, current_y: float):
+        # Calculate posture range
+        posture_range = abs(self.settings.bad_posture_y - self.settings.good_posture_y)
+        if posture_range < 0.01:
+            posture_range = 0.2  # Fallback
+
+        # Slouching = nose Y is ABOVE bad_posture_y (lower in frame = higher Y value)
+        slouch_amount = current_y - self.settings.bad_posture_y
+
+        # Apply sensitivity and dead zone
+        base_threshold = self.settings.dead_zone * posture_range * self.settings.sensitivity
+
+        # Hysteresis
+        enter_threshold = base_threshold
+        exit_threshold = base_threshold * 0.5
+
+        threshold = exit_threshold if self.is_slouching else enter_threshold
+        is_bad_posture = slouch_amount > threshold
+
+        if is_bad_posture:
+            self.consecutive_bad_frames += 1
+            self.consecutive_good_frames = 0
+
+            if self.consecutive_bad_frames >= self.FRAME_THRESHOLD:
+                self.is_slouching = True
+
+                # Calculate blur intensity
+                severity = (slouch_amount - enter_threshold) / posture_range
+                severity = max(0.0, min(1.0, severity))
+                eased_severity = severity * severity  # Quadratic ease-in
+
+                opacity = 0.03 + eased_severity * 0.97 * self.settings.sensitivity
+                self.overlay.set_target_opacity(opacity)
+
+                self.tray.set_status("Slouching")
+                self.tray.set_posture_state('slouching')
+        else:
+            self.consecutive_good_frames += 1
+            self.consecutive_bad_frames = 0
+
+            self.overlay.set_target_opacity(0)
+
+            if self.consecutive_good_frames >= self.FRAME_THRESHOLD:
+                self.is_slouching = False
+                self.tray.set_status("Good Posture")
+                self.tray.set_posture_state('good')
+
+    @pyqtSlot(bool)
+    def _on_enable_toggled(self, enabled: bool):
+        self.is_enabled = enabled
+        if not enabled:
+            self.overlay.set_target_opacity(0)
+            self.tray.set_status("Disabled")
+            self.pose_detector.stop()
+        else:
+            self.tray.set_status("Monitoring")
+            self.pose_detector.start(self.settings.camera_index)
+
+    @pyqtSlot(float)
+    def _on_sensitivity_changed(self, value: float):
+        self.settings.sensitivity = value
+        self.settings.sync()
+
+    @pyqtSlot(float)
+    def _on_dead_zone_changed(self, value: float):
+        self.settings.dead_zone = value
+        self.settings.sync()
+
+    @pyqtSlot(int)
+    def _on_camera_changed(self, index: int):
+        self.settings.camera_index = index
+        self.settings.sync()
+        self.pose_detector.stop()
+        self.pose_detector.start(index)
+        self.start_calibration()
+
+    @pyqtSlot(bool)
+    def _on_dim_away_toggled(self, enabled: bool):
+        self.settings.dim_when_away = enabled
+        self.settings.sync()
+        if not enabled:
+            self.consecutive_no_detection = 0
+
+    def _on_camera_error(self, message: str):
+        self.tray.set_status(f"Camera Error: {message}")
+
+    def _quit(self):
+        self.pose_detector.stop()
+        self.overlay.cleanup()
+        QApplication.instance().quit()

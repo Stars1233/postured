@@ -1,0 +1,149 @@
+from PyQt6.QtWidgets import QSystemTrayIcon, QMenu
+from PyQt6.QtGui import QIcon, QAction
+from PyQt6.QtCore import QObject, pyqtSignal
+
+
+class TrayIcon(QObject):
+    """System tray icon with menu."""
+
+    enable_toggled = pyqtSignal(bool)
+    recalibrate_requested = pyqtSignal()
+    sensitivity_changed = pyqtSignal(float)
+    dead_zone_changed = pyqtSignal(float)
+    camera_changed = pyqtSignal(int)
+    dim_when_away_toggled = pyqtSignal(bool)
+    quit_requested = pyqtSignal()
+
+    SENSITIVITY_OPTIONS = [
+        ("Very Low", 0.4),
+        ("Low", 0.6),
+        ("Medium", 0.85),
+        ("High", 0.95),
+        ("Very High", 1.0),
+    ]
+
+    DEAD_ZONE_OPTIONS = [
+        ("Very Small", 0.01),
+        ("Small", 0.02),
+        ("Medium", 0.03),
+        ("Large", 0.05),
+        ("Very Large", 0.08),
+    ]
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.tray = QSystemTrayIcon(self)
+        self.tray.setIcon(self._get_icon('good'))
+        self.tray.setToolTip("Postured")
+
+        self.menu = QMenu()
+        self._build_menu()
+        self.tray.setContextMenu(self.menu)
+        self.tray.show()
+
+    def _get_icon(self, state: str) -> QIcon:
+        # Use theme icons as fallback
+        icons = {
+            'good': 'user-available',
+            'slouching': 'user-busy',
+            'away': 'user-away',
+        }
+        return QIcon.fromTheme(icons.get(state, 'user-available'))
+
+    def _build_menu(self):
+        # Status (disabled, just for display)
+        self.status_action = QAction("Status: Starting...", self.menu)
+        self.status_action.setEnabled(False)
+        self.menu.addAction(self.status_action)
+
+        self.menu.addSeparator()
+
+        # Enable toggle
+        self.enable_action = QAction("Enabled", self.menu)
+        self.enable_action.setCheckable(True)
+        self.enable_action.setChecked(True)
+        self.enable_action.triggered.connect(
+            lambda checked: self.enable_toggled.emit(checked)
+        )
+        self.menu.addAction(self.enable_action)
+
+        # Recalibrate
+        recalibrate_action = QAction("Recalibrate", self.menu)
+        recalibrate_action.triggered.connect(self.recalibrate_requested.emit)
+        self.menu.addAction(recalibrate_action)
+
+        # Camera submenu
+        self.camera_menu = self.menu.addMenu("Camera")
+
+        # Sensitivity submenu
+        sensitivity_menu = self.menu.addMenu("Sensitivity")
+        self.sensitivity_actions = []
+        for name, value in self.SENSITIVITY_OPTIONS:
+            action = QAction(name, sensitivity_menu)
+            action.setCheckable(True)
+            action.setChecked(value == 0.85)  # Default: Medium
+            action.triggered.connect(
+                lambda checked, v=value: self._on_sensitivity_changed(v)
+            )
+            sensitivity_menu.addAction(action)
+            self.sensitivity_actions.append((action, value))
+
+        # Dead Zone submenu
+        dead_zone_menu = self.menu.addMenu("Dead Zone")
+        self.dead_zone_actions = []
+        for name, value in self.DEAD_ZONE_OPTIONS:
+            action = QAction(name, dead_zone_menu)
+            action.setCheckable(True)
+            action.setChecked(value == 0.03)  # Default: Medium
+            action.triggered.connect(
+                lambda checked, v=value: self._on_dead_zone_changed(v)
+            )
+            dead_zone_menu.addAction(action)
+            self.dead_zone_actions.append((action, value))
+
+        self.menu.addSeparator()
+
+        # Dim When Away toggle
+        self.dim_away_action = QAction("Dim When Away", self.menu)
+        self.dim_away_action.setCheckable(True)
+        self.dim_away_action.setChecked(False)
+        self.dim_away_action.triggered.connect(
+            lambda checked: self.dim_when_away_toggled.emit(checked)
+        )
+        self.menu.addAction(self.dim_away_action)
+
+        self.menu.addSeparator()
+
+        # Quit
+        quit_action = QAction("Quit", self.menu)
+        quit_action.triggered.connect(self.quit_requested.emit)
+        self.menu.addAction(quit_action)
+
+    def _on_sensitivity_changed(self, value: float):
+        for action, v in self.sensitivity_actions:
+            action.setChecked(v == value)
+        self.sensitivity_changed.emit(value)
+
+    def _on_dead_zone_changed(self, value: float):
+        for action, v in self.dead_zone_actions:
+            action.setChecked(v == value)
+        self.dead_zone_changed.emit(value)
+
+    def set_status(self, text: str):
+        self.status_action.setText(f"Status: {text}")
+
+    def set_posture_state(self, state: str):
+        """Update icon based on posture state ('good', 'slouching', 'away')."""
+        self.tray.setIcon(self._get_icon(state))
+
+    def update_cameras(self, cameras: list[tuple[int, str]], current: int):
+        self.camera_menu.clear()
+        for index, name in cameras:
+            action = QAction(name, self.camera_menu)
+            action.setCheckable(True)
+            action.setChecked(index == current)
+            action.triggered.connect(
+                lambda checked, i=index: self.camera_changed.emit(i)
+            )
+            self.camera_menu.addAction(action)
