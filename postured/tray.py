@@ -15,19 +15,19 @@ class TrayIcon(QObject):
     quit_requested = pyqtSignal()
 
     SENSITIVITY_OPTIONS = [
-        ("Very Low", 0.4),
+        ("Very low", 0.4),
         ("Low", 0.6),
         ("Medium", 0.85),
         ("High", 0.95),
-        ("Very High", 1.0),
+        ("Very high", 1.0),
     ]
 
     DEAD_ZONE_OPTIONS = [
-        ("Very Small", 0.01),
+        ("Very small", 0.01),
         ("Small", 0.02),
         ("Medium", 0.03),
         ("Large", 0.05),
-        ("Very Large", 0.08),
+        ("Very large", 0.08),
     ]
 
     def __init__(self, parent=None):
@@ -84,7 +84,7 @@ class TrayIcon(QObject):
             sensitivity_menu.addAction(action)
             self.sensitivity_actions.append((action, value))
 
-        dead_zone_menu = self.menu.addMenu("Dead Zone")
+        dead_zone_menu = self.menu.addMenu("Dead zone")
         self.dead_zone_actions = []
         for name, value in self.DEAD_ZONE_OPTIONS:
             action = QAction(name, dead_zone_menu)
@@ -98,7 +98,7 @@ class TrayIcon(QObject):
 
         self.menu.addSeparator()
 
-        self.dim_away_action = QAction("Dim When Away", self.menu)
+        self.dim_away_action = QAction("Dim when away", self.menu)
         self.dim_away_action.setCheckable(True)
         self.dim_away_action.setChecked(False)
         self.dim_away_action.triggered.connect(

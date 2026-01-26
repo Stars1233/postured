@@ -183,7 +183,7 @@ class Application(QObject):
             if self.consecutive_good_frames >= self.FRAME_THRESHOLD:
                 was_slouching = self.is_slouching
                 self.is_slouching = False
-                self.tray.set_status("Good Posture")
+                self.tray.set_status("Good posture")
                 self.tray.set_posture_state('good')
 
                 if was_slouching:
