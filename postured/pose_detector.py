@@ -111,7 +111,6 @@ class PoseDetector(QObject):
         self.worker = PoseWorker(self.model_path, camera_index)
         self.worker.moveToThread(self.thread)
 
-        # Connect signals
         self.thread.started.connect(self.worker.run)
         self.worker.pose_detected.connect(self.pose_detected)
         self.worker.no_detection.connect(self.no_detection)

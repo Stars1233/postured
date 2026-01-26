@@ -19,13 +19,11 @@ class Application(QObject):
 
         self.settings = Settings()
 
-        # Components
         self.pose_detector = PoseDetector(self)
         self.overlay = Overlay(self)
         self.tray = TrayIcon(self)
         self.calibration: CalibrationWindow | None = None
 
-        # State
         self.is_enabled = True
         self.is_calibrating = False
         self.is_slouching = False
@@ -37,12 +35,10 @@ class Application(QObject):
         self._start()
 
     def _connect_signals(self):
-        # Pose detector
         self.pose_detector.pose_detected.connect(self._on_pose_detected)
         self.pose_detector.no_detection.connect(self._on_no_detection)
         self.pose_detector.camera_error.connect(self._on_camera_error)
 
-        # Tray
         self.tray.enable_toggled.connect(self._on_enable_toggled)
         self.tray.recalibrate_requested.connect(self.start_calibration)
         self.tray.sensitivity_changed.connect(self._on_sensitivity_changed)
@@ -52,14 +48,11 @@ class Application(QObject):
         self.tray.quit_requested.connect(self._quit)
 
     def _start(self):
-        # Update camera list
         cameras = PoseDetector.available_cameras()
         self.tray.update_cameras(cameras, self.settings.camera_index)
 
-        # Start pose detection
         self.pose_detector.start(self.settings.camera_index)
 
-        # Start calibration if not calibrated
         if not self.settings.is_calibrated:
             self.start_calibration()
         else:
@@ -97,7 +90,6 @@ class Application(QObject):
 
     @pyqtSlot()
     def _on_calibration_cancelled(self):
-        # Use defaults
         self.settings.is_calibrated = True
         self._finish_calibration()
         self.tray.set_status("Using defaults")
@@ -135,15 +127,13 @@ class Application(QObject):
             self.tray.set_posture_state('away')
 
     def _evaluate_posture(self, current_y: float):
-        # Calculate posture range
         posture_range = abs(self.settings.bad_posture_y - self.settings.good_posture_y)
         if posture_range < 0.01:
-            posture_range = 0.2  # Fallback
+            posture_range = 0.2
 
         # Slouching = nose Y is ABOVE bad_posture_y (lower in frame = higher Y value)
         slouch_amount = current_y - self.settings.bad_posture_y
 
-        # Apply sensitivity and dead zone
         base_threshold = self.settings.dead_zone * posture_range * self.settings.sensitivity
 
         # Hysteresis

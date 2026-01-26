@@ -10,7 +10,6 @@ class OverlayWindow(QWidget):
         super().__init__()
         self.opacity_level = 0.0
 
-        # Window setup
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
@@ -20,7 +19,6 @@ class OverlayWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
 
-        # Cover the entire screen
         geometry = screen.geometry()
         self.setGeometry(geometry)
 
@@ -45,7 +43,6 @@ class OverlayWindow(QWidget):
         if self.opacity_level <= 0:
             return
         painter = QPainter(self)
-        # Dark overlay with current opacity
         color = QColor(0, 0, 0, int(self.opacity_level * 255 * 0.85))
         painter.fillRect(self.rect(), color)
 
@@ -85,13 +82,11 @@ class Overlay(QObject):
             return
 
         if self.current_opacity < self.target_opacity:
-            # Ease in (slow)
             self.current_opacity = min(
                 self.current_opacity + self.EASE_IN_RATE,
                 self.target_opacity
             )
         else:
-            # Ease out (fast)
             self.current_opacity = max(
                 self.current_opacity - self.EASE_OUT_RATE,
                 self.target_opacity

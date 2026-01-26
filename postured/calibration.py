@@ -21,20 +21,17 @@ class CalibrationWindow(QWidget):
         self.current_nose_y = 0.5
         self.pulse_phase = 0.0
 
-        # Window setup
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint
         )
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-        # Cover screen
         screens = QApplication.instance().screens()
         if screen_index < len(screens):
             screen = screens[screen_index]
             self.setGeometry(screen.geometry())
 
-        # Animation timer
         self.animation_timer = QTimer(self)
         self.animation_timer.timeout.connect(self._animate)
 
@@ -69,16 +66,13 @@ class CalibrationWindow(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        # Dark background
-        painter.fillRect(self.rect(), QColor(0, 0, 0, 217))  # 0.85 alpha
+        painter.fillRect(self.rect(), QColor(0, 0, 0, 217))
 
-        # Draw pulsing ring at current corner
         if self.current_step < len(self.CORNERS):
             corner = self.CORNERS[self.current_step]
             center = self._get_corner_position(corner)
             self._draw_pulsing_ring(painter, center)
 
-        # Draw instructions
         self._draw_instructions(painter)
 
     def _draw_pulsing_ring(self, painter: QPainter, center: QPointF):

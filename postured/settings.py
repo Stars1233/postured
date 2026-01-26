@@ -7,7 +7,6 @@ class Settings:
     Stores config in ~/.config/postured/postured.conf (on Linux).
     """
 
-    # Default values
     DEFAULTS = {
         'sensitivity': 0.85,
         'dead_zone': 0.03,

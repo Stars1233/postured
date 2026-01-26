@@ -52,14 +52,12 @@ class TrayIcon(QObject):
         return QIcon.fromTheme(icons.get(state, 'user-available'))
 
     def _build_menu(self):
-        # Status (disabled, just for display)
         self.status_action = QAction("Status: Starting...", self.menu)
         self.status_action.setEnabled(False)
         self.menu.addAction(self.status_action)
 
         self.menu.addSeparator()
 
-        # Enable toggle
         self.enable_action = QAction("Enabled", self.menu)
         self.enable_action.setCheckable(True)
         self.enable_action.setChecked(True)
@@ -68,15 +66,12 @@ class TrayIcon(QObject):
         )
         self.menu.addAction(self.enable_action)
 
-        # Recalibrate
         recalibrate_action = QAction("Recalibrate", self.menu)
         recalibrate_action.triggered.connect(self.recalibrate_requested.emit)
         self.menu.addAction(recalibrate_action)
 
-        # Camera submenu
         self.camera_menu = self.menu.addMenu("Camera")
 
-        # Sensitivity submenu
         sensitivity_menu = self.menu.addMenu("Sensitivity")
         self.sensitivity_actions = []
         for name, value in self.SENSITIVITY_OPTIONS:
@@ -89,7 +84,6 @@ class TrayIcon(QObject):
             sensitivity_menu.addAction(action)
             self.sensitivity_actions.append((action, value))
 
-        # Dead Zone submenu
         dead_zone_menu = self.menu.addMenu("Dead Zone")
         self.dead_zone_actions = []
         for name, value in self.DEAD_ZONE_OPTIONS:
@@ -104,7 +98,6 @@ class TrayIcon(QObject):
 
         self.menu.addSeparator()
 
-        # Dim When Away toggle
         self.dim_away_action = QAction("Dim When Away", self.menu)
         self.dim_away_action.setCheckable(True)
         self.dim_away_action.setChecked(False)
@@ -115,7 +108,6 @@ class TrayIcon(QObject):
 
         self.menu.addSeparator()
 
-        # Quit
         quit_action = QAction("Quit", self.menu)
         quit_action.triggered.connect(self.quit_requested.emit)
         self.menu.addAction(quit_action)
