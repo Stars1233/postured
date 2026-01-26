@@ -1,3 +1,4 @@
+import argparse
 import shutil
 import signal
 import socket
@@ -32,7 +33,20 @@ def install_desktop():
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "--install-desktop":
+    parser = argparse.ArgumentParser(description="Posture monitoring with screen dimming")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode to show tracking information",
+    )
+    parser.add_argument(
+        "--install-desktop",
+        action="store_true",
+        help="Install desktop integration files",
+    )
+    args = parser.parse_args()
+
+    if args.install_desktop:
         install_desktop()
         return
 
@@ -50,7 +64,7 @@ def main():
         )
         sys.exit(1)
 
-    postured = Application()
+    postured = Application(debug=args.debug)
 
     # Set up Unix signal handling for graceful shutdown.
     # Python's set_wakeup_fd() writes the signal number to a fd when a signal
