@@ -16,3 +16,10 @@ builddir/
 
 # Test coverage
 .coverage
+
+# Snap build artifacts
+prime/
+stage/
+build-dir/
+.craft/
+*.snap
