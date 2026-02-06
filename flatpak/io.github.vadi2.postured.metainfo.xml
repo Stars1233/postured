@@ -18,12 +18,22 @@
   <url type="bugtracker">https://github.com/vadi2/postured/issues</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/vadi2/postured/v1.4.1/screenshot.png</image>
+      <image>https://raw.githubusercontent.com/vadi2/postured/v1.5.0/screenshot.png</image>
       <caption>Good posture and slouching detection states</caption>
     </screenshot>
   </screenshots>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.5.0" date="2026-02-06">
+      <description>
+        <p>Bug fixes:</p>
+        <ul>
+          <li>Deduplicate cameras sharing the same physical device</li>
+          <li>Skip non-existent video devices in camera enumeration</li>
+          <li>Persist MediaPipe model across camera cycles</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.4.1" date="2026-01-29">
       <description>
         <p>Sync tray UI with saved settings on startup.</p>

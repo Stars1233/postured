@@ -1,3 +1,3 @@
 """Postured - A Linux app that lets you know when you slouch."""
 
-__version__ = "1.4.1"
+__version__ = "1.5.0"
